@@ -19,6 +19,9 @@ channels = {
 }
 
 
+@app.route('/')
+def index():
+
 @app.route('/channels')
 def get_all_channels():
     return json.dumps(channels)
@@ -32,12 +35,12 @@ def return_files():
     return json.dumps(ret)
 
 
-@app.route('/channels/:id/play/:filename')
+@app.route('/channels/<id>/play/<filename>')
 def play_filename(ident, filename):
     pass
 
 
-@app.route('/channels/:id/stop')
+@app.route('/channels/<id>/stop')
 def stop_filename(ident):
     pass
 
