@@ -1,0 +1,27 @@
+<div class="well-large">
+
+
+  <h1>Channels</h1>
+
+
+  <table class="table table-bordered">
+    <tr>
+      <th>Channel</th>
+      <th>File</th>
+      <th>Status</th>
+    </tr>
+    <tr ng-repeat="channel in channels">
+      <td ng-bind="channel.name"></td>
+      <td>
+        <select ng-model="channel.file" ng-options="file.id as file.name for file in files"></select>
+      </td>
+      <td>
+        <div ng-switch on="channel.state">
+          <button class="btn btn-primary" ng-switch-when="0" ng-click="play(channel)">play</button>
+          <button class="btn btn-danger" ng-switch-when="1" ng-click="stop(channel)">stop</button>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+</div>
