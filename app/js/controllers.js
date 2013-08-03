@@ -41,7 +41,7 @@
         var moved = false;
         var movingNode;
         var currentConnection;
-
+        var timedout;
 
         function removeElement(array, element) {
           var index = array.indexOf(element);
@@ -67,6 +67,8 @@
           }
         };
 
+
+
         $scope.stopMove = function ($event) {
           if (moved) {
             cancelClick($event);
@@ -90,6 +92,12 @@
           $scope.connections.push(currentConnection);
         }
 
+
+        function updateVolume(volume, channel) {
+          console.log(channel);
+          $http.get('/channels/' + channel.id + '/volume/' + Math.ceil(volume * 100));
+        }
+
         function endConnection(node) {
           var temp;
           if (currentConnection) {
@@ -103,12 +111,17 @@
             }
 
             if (currentConnection.end.channel && currentConnection.start.file) {
+
+              updateVolume(currentConnection.start.volume, currentConnection.end.channel);
+
               currentConnection = null;
+
             } else {
               removeElement($scope.connections, currentConnection);
             }
           }
         }
+
 
         $scope.makeConnection = function ($event, node) {
           $event.stopPropagation();
@@ -152,10 +165,61 @@
         // file nodes
         $scope.fileNodes = [];
 
+
+        $scope.changeVolume = function (fileNode) {
+          var t = Math.asin(fileNode.volume);
+
+          timedout = false;
+
+          fileNode.volumeTimeout = $timeout(function () {
+
+            timedout = true;
+
+            if (!moved) {
+
+              fileNode.interval = setInterval(function () {
+                $scope.$apply(function () {
+                  t += 0.02;
+                  fileNode.volume = Math.abs(Math.sin(t));
+                });
+              }, 10);
+
+            }
+
+          }, 750);
+
+        };
+
+
+        $scope.setVolume = function ($event, fileNode) {
+          if (fileNode.volumeTimeout) {
+            $timeout.cancel(fileNode.volumeTimeout);
+            fileNode.volumeTimeout = null;
+          }
+
+          if (fileNode.interval) {
+            clearInterval(fileNode.interval);
+            fileNode.interval = null;
+          }
+
+          if (!moved && timedout) {
+
+            cancelClick($event);
+
+            var channels = getConnectedChannels(fileNode);
+
+            _(channels).each(_(updateVolume).partial(fileNode.volume));
+
+            timedout = false;
+
+          }
+        };
+
         function createFileNode(file) {
           return {
             state: 0,
             file: file,
+            volume: 0.75,
             x: Math.floor(Math.random() * $document[0].width),
             y: Math.floor(Math.random() * $document[0].height)
           };
