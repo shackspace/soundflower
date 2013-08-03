@@ -4,11 +4,8 @@ import subprocess
 import os
 import sys
 import os.path
+from time import sleep
 
-from mpd import MPDClient
-mpc = MPDClient()
-mpc.timeout = 10
-mpc.idletimeout = None
 from flask import Flask, abort, redirect, url_for, render_template
 os.chdir(os.path.realpath(os.path.dirname(sys.argv[0])))
 here = os.path.abspath(os.getcwd())
@@ -16,12 +13,10 @@ here = os.path.abspath(os.getcwd())
 
 
 app = Flask(__name__)
-db = 'shelve.db'
 SOUND_FOLDER = os.path.abspath('../sounds/')
 PLAYLIST_FOLDER = SOUND_FOLDER + 'playlist'
 MPD_FOLDER = os.path.abspath('../mpd/')
-PIDFOLDER = 'pids/'
-
+mpd_start_port = 6700
 
 class SoundClient:
     client = None
@@ -29,7 +24,7 @@ class SoundClient:
     def __init__(self, ident):
         from mpd import MPDClient
         # TODO fix this hack (this resolves circular deps
-        self.port = 6600 + ident
+        self.port = mpd_start_port + ident
         self.client = MPDClient()
         self.client.timeout = 10
         self.client.idletimeout = None
@@ -44,7 +39,7 @@ class SoundClient:
         self.client.close()
         self.client.disconnect()
 
-for d in [SOUND_FOLDER, MPD_FOLDER, PLAYLIST_FOLDER, PIDFOLDER]:
+for d in [SOUND_FOLDER, MPD_FOLDER, PLAYLIST_FOLDER ]:
     try:
         os.mkdir(d)
     except:
@@ -120,7 +115,7 @@ def all_the_channels():
             device = int(d.split(',')[1].split()[1])
             name = name.split('[')[0]
             channels.append({'id': ident,
-                             'mpd_port': 6600+ident,
+                             'mpd_port': mpd_start_port +ident,
                              'card': card,
                              'device': device,
                              'state': get_running(ident),
@@ -191,7 +186,11 @@ def loop_filename(ident, fileid):
 def set_volume(ident, vol):
     ident = int(ident)
     with SoundClient(ident) as mpc:
-        mpc.setvol(vol)
+   try:
+       mpc.setvol(vol)
+                return '"ok"'
+   except:
+            return '"cannot set volume for %d"' % ident
 
 
 @app.route('/channels/<ident>/stop')
@@ -215,7 +214,6 @@ def init_mpds():
         mpd_path = MPD_FOLDER+"/"+str(c['id'])
         mpd_conf = mpd_path+'.conf'
         try:
-            from time import sleep
             pid = int(open(mpd_path+'.pid').read())
             os.kill(pid, 3)
             sleep(1)
@@ -257,6 +255,7 @@ audio_output {{
 if __name__ == "__main__":
     #print(files)
     init_mpds()
+    sleep(1)
     for value in all_the_channels():
         set_volume(str(value['id']), "100")
     app.debug = True
