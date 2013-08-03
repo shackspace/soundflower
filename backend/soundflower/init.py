@@ -89,6 +89,7 @@ def loop_file(ident, filename):
             mpc.add(filename)
             mpc.repeat(1)
             mpc.play()
+            return duration
     else:
         raise Exception('already running or something')
 
