@@ -33,8 +33,8 @@
     ])
 
     .controller('InterfaceController', [
-      '$scope', '$document', 'channels', 'cancelClick',
-      function ($scope, $document, channels, cancelClick) {
+      '$scope', '$document', 'underscore', 'channels', 'cancelClick', '$http',
+      function ($scope, $document, _, Channels, cancelClick, $http) {
 
         // drag ang drop
         var offset;
@@ -83,9 +83,20 @@
         }
 
         function endConnection(node) {
+          var temp;
           if (currentConnection) {
             currentConnection.end = node;
             movingNode = null;
+
+            if (currentConnection.start.channel) {
+              temp = currentConnection.end;
+              currentConnection.end = currentConnection.start;
+              currentConnection.start = temp;
+            }
+
+
+            console.log(currentConnection);
+
             currentConnection = null;
           }
         }
@@ -130,8 +141,48 @@
           };
         }
 
+        function getConnectedChannels(fileNode) {
+
+          function isConnectedWithFileNode(connection) {
+            return connection.start === fileNode;
+          }
+
+          function getChannel(connection) {
+            return connection.end.channel;
+          }
+
+          return _($scope.connections)
+            .chain()
+            .filter(isConnectedWithFileNode)
+            .map(getChannel)
+            .value();
+        }
+
+        function stopPlaying(channels) {
+          _(channels)
+            .each(function (channel) {
+              $http.get('/channels/' + channel.id + '/stop');
+            });
+        }
+
+        function startPlaying(channels, fileId) {
+          console.log(fileId);
+          _(channels)
+            .each(function (channel) {
+              $http.get('/channels/' + channel.id + '/play/' + fileId);
+            });
+        }
+
         $scope.toggleState = function (fileNode) {
           fileNode.state = fileNode.state ? 0 : 1;
+
+          var channels = getConnectedChannels(fileNode);
+
+          if (fileNode.state === 0) {
+            stopPlaying(channels);
+          } else {
+            startPlaying(channels, fileNode.file.id);
+          }
         };
 
         $scope.$on('addFile', function (evt, file) {
@@ -148,7 +199,7 @@
           };
         }
 
-        channels.query(function (channels) {
+        Channels.query(function (channels) {
           $scope.channelNodes = channels.map(createOutputNode);
         });
       }
@@ -158,6 +209,7 @@
       '$scope', '$rootScope', 'files',
       function ($scope, $rootScope, files) {
         $scope.files = files.query();
+
 
         $scope.addSound = function (file) {
           $rootScope.$broadcast('addFile', file);

@@ -31,6 +31,12 @@
           };
         };
       }
-    ]);
+    ])
 
+    .factory('underscore', [
+      '$window',
+      function ($window) {
+        return $window._.noConflict();
+      }
+    ]);
 }());
