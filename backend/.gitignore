@@ -4,3 +4,4 @@ pids/
 build/
 lib/
 mpd/
+local/
