@@ -12,9 +12,10 @@
 
 
   <path ng-repeat="connection in connections"
+        ng-click="removeConnection(connection)"
         d="M {{ connection.start.x + 40}} {{ connection.start.y }} L {{ connection.end.x + 40}} {{ connection.end.y }}"
         stroke="white"
-        stroke-width="2"></path>
+        stroke-width="3"></path>
 
 
   <g ng-repeat="fileNode in fileNodes"

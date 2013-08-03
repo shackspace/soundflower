@@ -42,6 +42,14 @@
         var movingNode;
         var currentConnection;
 
+
+        function removeElement(array, element) {
+          var index = array.indexOf(element);
+          if (index !== -1) {
+            array.splice(index, 1);
+          }
+        }
+
         $scope.startMove = function ($event, node) {
           $event.stopPropagation();
           movingNode = node;
@@ -94,10 +102,11 @@
               currentConnection.start = temp;
             }
 
-
-            console.log(currentConnection);
-
-            currentConnection = null;
+            if (currentConnection.end.channel && currentConnection.start.file) {
+              currentConnection = null;
+            } else {
+              removeElement($scope.connections, currentConnection);
+            }
           }
         }
 
@@ -112,14 +121,25 @@
 
         $scope.cancelConnection = function ($event) {
           $event.stopPropagation();
-          $scope.removeConnection(currentConnection);
+          removeElement($scope.connections, currentConnection);
         };
 
         $scope.removeConnection = function (connection) {
-          var connections = $scope.connections;
-          var deleteIndex = connection.indexOf(connection);
+          var fileNode;
 
-          connections.splice(deleteIndex, 1);
+          fileNode = connection.start;
+          if (fileNode.state ===  1) {
+
+            $http.get('/channels/' + connection.end.channel.id + '/stop');
+
+            console.log(getConnectedChannels(fileNode).length);
+
+            if (getConnectedChannels(fileNode).length === 1) {
+              fileNode.state = 0;
+            }
+          }
+
+          removeElement($scope.connections, connection);
         };
 
         $scope.moveConnection = function ($event) {
@@ -177,26 +197,30 @@
         }
 
         $scope.toggleState = function (fileNode) {
-          fileNode.state = fileNode.state ? 0 : 1;
-
-          if (fileNode.timeout) {
-            $timeout.cancel(fileNode.timeout);
-          }
-
           var channels = getConnectedChannels(fileNode);
 
-          if (fileNode.state === 0) {
-            stopPlaying(channels);
-          } else {
-            startPlaying(channels, fileNode.file.id, function (result) {
+          if (channels.length > 0) {
 
-              var time = parseFloat(result.data, 10) * 1000;
+            fileNode.state = fileNode.state ? 0 : 1;
 
-              fileNode.timeout = $timeout(function () {
-                fileNode.state = 0;
-              }, time);
+            if (fileNode.timeout) {
+              $timeout.cancel(fileNode.timeout);
+            }
 
-            });
+
+            if (fileNode.state === 0) {
+              stopPlaying(channels);
+            } else {
+              startPlaying(channels, fileNode.file.id, function (result) {
+
+                var time = parseFloat(result.data, 10) * 1000;
+
+                fileNode.timeout = $timeout(function () {
+                  fileNode.state = 0;
+                }, time);
+
+              });
+            }
           }
         };
 
