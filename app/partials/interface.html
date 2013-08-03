@@ -18,15 +18,22 @@
 
 
   <g ng-repeat="fileNode in fileNodes"
+     ng-click="toggleState(fileNode)"
      ng-mousedown="startMove($event, fileNode)"
      transform="translate({{ fileNode.x }}, {{ fileNode.y }})">
     <circle
-      cx="-15" cy="-15"
+      cx="0" cy="0"
       r="30"
       fill="yellow"></circle>
 
+    <g ng-switch="fileNode.state"
+       transform="translate(-12, -12)">
+      <image ng-switch-when="0" x="0" y="0" width="24" height="24" xlink:href="static/img/play.png"></image>
+      <image ng-switch-when="1" x="0" y="0" width="24" height="24" xlink:href="static/img/pause.png"></image>
+    </g>
+
     <circle ng-click="startConnection(fileNode)"
-            cx="30" cy="-5"
+            cx="30" cy="0"
             r="10"
             fill="green"></circle>
 
@@ -44,7 +51,7 @@
      ng-click="makeConnection(channelNode)"
      transform="translate({{ channelNode.x }}, {{ channelNode.y }})">
     <circle ng-click="endConnection(channelNode)"
-            cx="-15" cy="-15"
+            cx="0" cy="0"
             r="30"
             fill="red"></circle>
 

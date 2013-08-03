@@ -109,11 +109,16 @@
 
         function createFileNode(file) {
           return {
+            state: 0,
             file: file,
             x: Math.floor(Math.random() * $document[0].width),
             y: Math.floor(Math.random() * $document[0].height)
           };
         }
+
+        $scope.toggleState = function (fileNode) {
+          fileNode.state = fileNode.state ? 0 : 1;
+        };
 
         $scope.$on('addFile', function (evt, file) {
           var fileNode = createFileNode(file);
