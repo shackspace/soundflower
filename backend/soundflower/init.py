@@ -71,6 +71,9 @@ def get_alsa_file_id(card, device):
     return 0
 
 
+
+
+
 def all_the_channels():
     channels = []
     ident = 0
@@ -127,6 +130,16 @@ def play_filename(ident, fileid):
         return str(play_file(c['card'], c['device'], fname))
     except Exception as e:
         return "Something went wrong %s" % str(e), 403
+
+@app.route('/channels/<ident>/volume/<vol>')
+def set_volume(ident, vol):
+    ident = int(ident)
+    vol = vol
+    c = all_the_channels()[ident]
+    # brute force mixer controls
+    for mixer in ['PCM', 'Master', 'Speaker']:
+        subprocess.call(['amixer', '-c', str(c['card']), 'set', mixer, vol+'%'])
+    return 'ok'
 
 
 @app.route('/channels/<ident>/stop')
