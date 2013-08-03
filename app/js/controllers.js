@@ -8,7 +8,6 @@
       function ($scope, channels, files) {
 
         $scope.channels = channels.query();
-        $scope.files = files.query();
 
 
         $scope.play = function (channel) {
@@ -34,8 +33,10 @@
     ])
 
     .controller('InterfaceController', [
-      '$scope',
-      function ($scope) {
+      '$scope', '$document',
+      function ($scope, $document) {
+
+        $scope.files = [];
 
         var offset;
         var movingNode;
@@ -47,29 +48,6 @@
             x: $event.x - movingNode.x,
             y: $event.y - movingNode.y
           };
-        };
-
-
-        $scope.connectLine = function (node) {
-
-          if (!connectLine) {
-            connectLine = {
-              start: node,
-              end: {
-                x: node.x,
-                y: node.y
-              }
-            };
-
-            movingNode = connectLine.end;
-
-            $scope.lines.push(connectLine);
-
-          } else {
-            connectLine.end = node;
-            movingNode = null;
-          }
-
         };
 
         $scope.updateNode = function ($event, node) {
@@ -84,16 +62,35 @@
         };
 
 
-        $scope.nodes = [
-          {x: 0,  y: 0, color: 'red'},
-          {x: 100,  y: 100, color: 'yellow'}
-        ];
+        $scope.fileNodes = [];
 
-        $scope.lines = [
-        ];
+        function createFileNode(file) {
+          return {
+            file: file,
+            x: Math.floor(Math.random() * $document[0].width),
+            y: Math.floor(Math.random() * $document[0].height)
+          };
+        }
 
+        $scope.$on('addFile', function (evt, file) {
+          var fileNode = createFileNode(file);
 
+          $scope.fileNodes.push(fileNode);
+          console.log('addFile', $scope.fileNodes);
+        });
+      }
+    ])
+
+    .controller('MenuController', [
+      '$scope', '$rootScope', 'files',
+      function ($scope, $rootScope, files) {
+        $scope.files = files.query();
+
+        $scope.addSound = function (file) {
+          $rootScope.$broadcast('addFile', file);
+        };
       }
     ]);
+
 
 }());
