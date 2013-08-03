@@ -21,14 +21,20 @@ def get_all_files(folder):
         ret.append({'name': f, 'id': index})
     return ret
 
+def get_wav_len(filename):
+    import wave
+    import contextlib
+    try:
+        with contextlib.closing(wave.open(filename)) as f:
+            frames = f.getnframes()
+            rate = f.getframerate()
+            return frames/float(rate)
+    except IOError:
+        return 0.0
+        #raise Exception(filename + " does not exist!")
 
 def play_file(card, device, filename):
-
-    try:
-        with open(filename):
-            pass
-    except IOError:
-        raise Exception(filename + " does not exist!")
+    duration = get_wav_len(filename)
 
     if not get_running(card, device):
         proc = subprocess.Popen(['aplay', '-D', 'plughw:%d,%d' %
@@ -37,7 +43,22 @@ def play_file(card, device, filename):
         with open(PIDFOLDER+'%d-%d' % (card, device), 'w+') as f:
             f.write(str(proc.pid)+'\n')
             f.write(filename)
+        return duration
+    else:
+        raise Exception('already running or something')
 
+
+def loop_file(card, device, filename):
+    # i come in hell for this, sorry...
+    duration = get_wav_len(filename)
+    if not get_running(card, device):
+        proc = subprocess.Popen(['mplayer','-really-quiet','-loop','0', '-ao', 'alsa:device=hw=%d.%d' %
+                                (card, device), filename])
+        print(proc)
+        with open(PIDFOLDER+'%d-%d' % (card, device), 'w+') as f:
+            f.write(str(proc.pid)+'\n')
+            f.write(filename)
+        return duration
     else:
         raise Exception('already running or something')
 
@@ -64,6 +85,9 @@ def get_running(card, device):
 
 def get_alsa_file_id(card, device):
     return 0
+
+
+
 
 
 def all_the_channels():
@@ -119,12 +143,33 @@ def play_filename(ident, fileid):
     fname = get_file_for_id(fileid)
     print(fname)
     try:
-        play_file(c['card'], c['device'], fname)
+        return str(play_file(c['card'], c['device'], fname))
     except Exception as e:
         return "Something went wrong %s" % str(e), 403
-        raise e
 
-    return redirect(url_for('get_all_channels'))
+
+@app.route('/channels/<ident>/loop/<fileid>')
+def loop_filename(ident, fileid):
+    fileid = int(fileid)
+    ident = int(ident)
+    c = all_the_channels()[ident]
+    fname = get_file_for_id(fileid)
+    print(fname)
+    try:
+        return str(loop_file(c['card'], c['device'], fname))
+    except Exception as e:
+        return "Something went wrong %s" % str(e), 403
+
+
+@app.route('/channels/<ident>/volume/<vol>')
+def set_volume(ident, vol):
+    ident = int(ident)
+    vol = vol
+    c = all_the_channels()[ident]
+    # brute force mixer controls
+    for mixer in ['PCM', 'Master', 'Speaker']:
+        subprocess.call(['amixer', '-c', str(c['card']), 'set', mixer, vol+'%'])
+    return 'ok'
 
 
 @app.route('/channels/<ident>/stop')
@@ -148,5 +193,7 @@ files = get_all_files(SOUND_FOLDER)
 
 if __name__ == "__main__":
     #print(files)
+    for value in all_the_channels():
+        set_volume(str(value['id']), "100")
     app.debug = True
     app.run("0.0.0.0")
