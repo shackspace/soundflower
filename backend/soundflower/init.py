@@ -139,6 +139,10 @@ def get_running_file(ident):
 def index():
     return render_template('index.html')
 
+@app.route('/old')
+def index_old():
+    return redirect('/#/old')
+
 
 @app.route('/channels')
 def get_all_channels():
