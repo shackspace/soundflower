@@ -42,11 +42,12 @@ def play_file(card, device, filename):
         raise Exception('already running or something')
 
 
-def get_running(card, device):
+def get_pid_for_audiodev(card, device):
     fname = PIDFOLDER+'%d-%d' % (card, device)
     try:
-        os.kill(int(open(fname).readline()), 0)
-        return 1
+        pid = int(open(fname).readline())
+        os.kill(pid, 0)
+        return pid
     except:
         try:
             os.remove(fname)
@@ -54,6 +55,11 @@ def get_running(card, device):
         except:
             pass
         return 0
+
+ 
+def get_running(card, device):
+    fname = PIDFOLDER+'%d-%d' % (card, device)
+    return get_pid_for_audiodev(card, device)
 
 
 def get_alsa_file_id(card, device):
@@ -121,9 +127,17 @@ def play_filename(ident, fileid):
     return redirect(url_for('get_all_channels'))
 
 
-@app.route('/channels<ident>/stop')
-def stop_filename(ident):
-    pass
+@app.route('/channels/<ident>/stop')
+def stop_sound(ident):
+    ident = int(ident)
+    c = all_the_channels()[ident]
+    try:
+        pid = get_pid_for_audiodev(c['card'], c['device'])
+        print(pid)
+        os.kill(pid, 9)
+        return '"ok"'
+    except:
+        print('cannot stop %d' % ident)
 
 
 files = get_all_files(SOUND_FOLDER)
