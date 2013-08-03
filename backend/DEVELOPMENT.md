@@ -1,6 +1,6 @@
 # How to develop
 
-    aptitude install python-virtualenv alsa-utils mplayer
+    aptitude install python-virtualenv alsa-utils mpd
 
     virtualenv .
     . bin/activate

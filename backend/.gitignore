@@ -3,3 +3,4 @@ include/
 pids/
 build/
 lib/
+mpd/

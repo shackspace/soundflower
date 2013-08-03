@@ -2,17 +2,53 @@ import json
 import os.path
 import subprocess
 import os
+import sys
+import os.path
+
+from mpd import MPDClient
+mpc = MPDClient()
+mpc.timeout = 10
+mpc.idletimeout = None
 from flask import Flask, abort, redirect, url_for, render_template
+os.chdir(os.path.realpath(os.path.dirname(sys.argv[0])))
+here = os.path.abspath(os.getcwd())
+
+
 
 app = Flask(__name__)
-
 db = 'shelve.db'
-SOUND_FOLDER = '../sounds/'
+SOUND_FOLDER = os.path.abspath('../sounds/')
+PLAYLIST_FOLDER = SOUND_FOLDER + 'playlist'
+MPD_FOLDER = os.path.abspath('../mpd/')
 PIDFOLDER = 'pids/'
-try:
-    os.mkdir(PIDFOLDER)
-except:
-    pass
+
+
+class SoundClient:
+    client = None
+
+    def __init__(self, ident):
+        from mpd import MPDClient
+        # TODO fix this hack (this resolves circular deps
+        self.port = 6600 + ident
+        self.client = MPDClient()
+        self.client.timeout = 10
+        self.client.idletimeout = None
+
+    def __enter__(self):
+        self.client.connect('localhost', self.port)
+        # normalize params again
+        self.client.repeat(0)
+        return self.client
+
+    def __exit__(self, type, value, traceback):
+        self.client.close()
+        self.client.disconnect()
+
+for d in [SOUND_FOLDER, MPD_FOLDER, PLAYLIST_FOLDER, PIDFOLDER]:
+    try:
+        os.mkdir(d)
+    except:
+        pass
 
 
 def get_all_files(folder):
@@ -20,6 +56,7 @@ def get_all_files(folder):
     for index, f in enumerate(os.listdir(SOUND_FOLDER)):
         ret.append({'name': f, 'id': index})
     return ret
+
 
 def get_wav_len(filename):
     import wave
@@ -31,63 +68,41 @@ def get_wav_len(filename):
             return frames/float(rate)
     except IOError:
         return 0.0
-        #raise Exception(filename + " does not exist!")
 
-def play_file(card, device, filename):
+
+def play_file(ident, filename):
     duration = get_wav_len(filename)
 
-    if not get_running(card, device):
-        proc = subprocess.Popen(['aplay', '-D', 'plughw:%d,%d' %
-                                (card, device), filename])
-        print(proc)
-        with open(PIDFOLDER+'%d-%d' % (card, device), 'w+') as f:
-            f.write(str(proc.pid)+'\n')
-            f.write(filename)
-        return duration
+    if not get_running(ident):
+        with SoundClient(ident) as mpc:
+            mpc.clear()
+            mpc.add(filename)
+            mpc.play()
     else:
         raise Exception('already running or something')
 
 
-def loop_file(card, device, filename):
+def loop_file(ident, filename):
     # i come in hell for this, sorry...
     duration = get_wav_len(filename)
-    if not get_running(card, device):
-        proc = subprocess.Popen(['mplayer','-really-quiet','-loop','0', '-ao', 'alsa:device=hw=%d.%d' %
-                                (card, device), filename])
-        print(proc)
-        with open(PIDFOLDER+'%d-%d' % (card, device), 'w+') as f:
-            f.write(str(proc.pid)+'\n')
-            f.write(filename)
-        return duration
+
+    if not get_running(ident):
+        with SoundClient(ident) as mpc:
+            mpc.clear()
+            mpc.add(filename)
+            mpc.repeat(1)
+            mpc.play()
     else:
         raise Exception('already running or something')
 
 
-def get_pid_for_audiodev(card, device):
-    fname = PIDFOLDER+'%d-%d' % (card, device)
+def get_running(ident):
+    ident = int(ident)
     try:
-        pid = int(open(fname).readline())
-        os.kill(pid, 0)
-        return pid
+        with SoundClient(ident) as mpc:
+            return 1 if mpc.status()['state'] == 'play' else 0
     except:
-        try:
-            os.remove(fname)
-            print('removing stale pidfile: %s' % fname)
-        except:
-            pass
         return 0
-
- 
-def get_running(card, device):
-    fname = PIDFOLDER+'%d-%d' % (card, device)
-    return get_pid_for_audiodev(card, device)
-
-
-def get_alsa_file_id(card, device):
-    return 0
-
-
-
 
 
 def all_the_channels():
@@ -104,13 +119,20 @@ def all_the_channels():
             device = int(d.split(',')[1].split()[1])
             name = name.split('[')[0]
             channels.append({'id': ident,
+                             'mpd_port': 6600+ident,
                              'card': card,
                              'device': device,
-                             'state': get_running(card, device),
-                             'file': get_alsa_file_id(card, device),
+                             'state': get_running(ident),
+                             'file': get_running_file(ident),
                              'name': name.strip()})
             ident = ident + 1
     return channels
+
+
+def get_running_file(ident):
+    with SoundClient(ident) as mpc:
+        print(mpc)
+        return mpc.currentsong().get('file','')
 
 
 @app.route('/')
@@ -120,7 +142,6 @@ def index():
 
 @app.route('/channels')
 def get_all_channels():
-
     return json.dumps(list(all_the_channels()))
 
 
@@ -132,7 +153,7 @@ def return_files():
 def get_file_for_id(fileid):
     for v in get_all_files(SOUND_FOLDER):
         if v['id'] == fileid:
-            return SOUND_FOLDER + v['name']
+            return v['name']
 
 
 @app.route('/channels/<ident>/play/<fileid>')
@@ -143,7 +164,7 @@ def play_filename(ident, fileid):
     fname = get_file_for_id(fileid)
     print(fname)
     try:
-        return str(play_file(c['card'], c['device'], fname))
+        return str(play_file(ident, fname))
     except Exception as e:
         return "Something went wrong %s" % str(e), 403
 
@@ -156,43 +177,80 @@ def loop_filename(ident, fileid):
     fname = get_file_for_id(fileid)
     print(fname)
     try:
-        return str(loop_file(c['card'], c['device'], fname))
+        return str(loop_file(ident, fname))
     except Exception as e:
         return "Something went wrong %s" % str(e), 403
+
+
 
 
 @app.route('/channels/<ident>/volume/<vol>')
 def set_volume(ident, vol):
     ident = int(ident)
-    vol = vol
-    c = all_the_channels()[ident]
-    # brute force mixer controls
-    for mixer in ['PCM', 'Master', 'Speaker']:
-        subprocess.call(['amixer', '-c', str(c['card']), 'set', mixer, vol+'%'])
-    return 'ok'
+    with SoundClient(ident) as mpc:
+        mpc.setvol(vol)
 
 
 @app.route('/channels/<ident>/stop')
 def stop_sound(ident):
     ident = int(ident)
-    c = all_the_channels()[ident]
-    try:
-        pid = get_pid_for_audiodev(c['card'], c['device'])
-        if pid:
-            print(pid)
-            os.kill(pid, 9)
-            return '"ok"'
-        else:
-            raise Exception('pid is 0')
-    except:
-        print('cannot stop %d' % ident)
+    with SoundClient(ident) as mpc:
+        mpc.stop()
+        mpc.clear()
+    return '"ok"'
 
 
 files = get_all_files(SOUND_FOLDER)
 
 
+def init_mpds():
+    for c in all_the_channels():
+        print(c)
+        mpd_path = MPD_FOLDER+"/"+str(c['id'])
+        mpd_conf = mpd_path+'.conf'
+        try:
+            from time import sleep
+            pid = int(open(mpd_path+'.pid').read())
+            os.kill(pid, 3)
+            sleep(1)
+            print('%d killed' % pid)
+        except Exception as e:
+            print(e)
+            pass
+        with open(mpd_conf, 'w+') as conf:
+            print('writing config %s.conf' % mpd_path)
+            conf.write("""playlist_directory "{0}"
+music_directory        "{1}"
+db_file "{2}.db"
+log_file           "{2}.log"
+pid_file "{2}.pid"
+state_file "{2}.state"
+#user 'root'
+port "{3}"
+gapless_mp3_playback           "no"
+zeroconf_enabled "no"
+volume_normalization       "no"
+bind_to_address "127.0.0.1"
+
+audio_output {{
+   type        "alsa"
+   name        "My ALSA Device"
+   device      "hw:{4},{5}"
+#  format      "44100:16:2"    # optional
+#  mixer_type      "hardware"  # optional
+#  mixer_device    "default"   # optional
+#  mixer_control   "PCM"       # optional
+#  mixer_index "0"     # optional
+}}""".format(SOUND_FOLDER+'/playlist', 
+            SOUND_FOLDER, mpd_path,
+            c['mpd_port'],
+            c['card'], c['device']))
+        os.system('mpd %s' % mpd_conf)
+    
+
 if __name__ == "__main__":
     #print(files)
+    init_mpds()
     for value in all_the_channels():
         set_volume(str(value['id']), "100")
     app.debug = True
