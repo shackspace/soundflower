@@ -1,19 +1,56 @@
 import json
 import os.path
+import subprocess
+import os
 from flask import Flask, abort, redirect, url_for, render_template
 
 app = Flask(__name__)
 
 db = 'shelve.db'
 SOUND_FOLDER = '../sounds/'
+PIDFOLDER = 'pids/'
+try:
+    os.mkdir(PIDFOLDER)
+except:
+    pass
 
 
 def get_all_files(folder):
     return os.listdir(folder)
 
 
-def get_alsa_state(card, device):
-    return 0
+def play_file(card, device, filename):
+
+    try:
+        with open(filename):
+            pass
+    except IOError:
+        raise Exception(filename + " does not exist!")
+
+    if not get_running(card, device):
+        proc = subprocess.Popen(['aplay', '-D', 'plughw:%d,%d' %
+                                (card, device), filename])
+        print(proc)
+        with open(PIDFOLDER+'%d-%d' % (card, device), 'w+') as f:
+            f.write(str(proc.pid)+'\n')
+            f.write(filename)
+
+    else:
+        raise Exception('already running or something')
+
+
+def get_running(card, device):
+    fname = PIDFOLDER+'%d-%d' % (card, device)
+    try:
+        os.kill(int(open(fname).readline()), 0)
+        return 1
+    except:
+        try:
+            os.remove(fname)
+            print('removing stale pidfile: %s' % fname)
+        except:
+            pass
+        return 0
 
 
 def get_alsa_file_id(card, device):
@@ -21,19 +58,21 @@ def get_alsa_file_id(card, device):
 
 
 def all_the_channels():
-    import subprocess
     channels = []
     ident = 0
     for line in str(subprocess.check_output(['aplay', '-l'])).split('\\n'):
         if 'card' in line:
             c, d, name = line.split(':')
-            card = c.split()[1]
-            device = d.split(',')[1].split()[1]
+            card = int(c.split()[1])
+            device = int(d.split(',')[1].split()[1])
             name = name.split('[')[0]
             channels.append({'id': ident,
-                             'state': get_alsa_state(card, device),
+                             'card': card,
+                             'device': device,
+                             'state': get_running(card, device),
                              'file': get_alsa_file_id(card, device),
                              'name': name.strip()})
+            ident = ident + 1
     return channels
 
 
@@ -56,13 +95,20 @@ def return_files():
     return json.dumps(ret)
 
 
-@app.route('/channels/<ident>/play/<filename>')
+@app.route('/channel/<ident>/play/<filename>')
 def play_filename(ident, filename):
+    ident = int(ident)
+    c = all_the_channels()[ident]
+    print(c)
+    try:
+        play_file(c['card'], c['device'], SOUND_FOLDER+filename)
+    except Exception as e:
+        return "Something went wrong %s" % str(e), 403
 
     return redirect(url_for('get_all_channels'))
 
 
-@app.route('/channels/<ident>/stop')
+@app.route('/channel/<ident>/stop')
 def stop_filename(ident):
     pass
 
