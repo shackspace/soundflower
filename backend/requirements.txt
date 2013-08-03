@@ -1,8 +1,6 @@
-Flask==0.10.1
-Jinja2==2.7
-MarkupSafe==0.18
-Werkzeug==0.9.3
-distribute==0.6.31
-itsdangerous==0.22
-pyalsaaudio==0.7
-python-mpd==0.5.1
+Flask>=0.10.1
+Jinja2>=2.7
+MarkupSafe>=0.18
+Werkzeug>=0.9.3
+itsdangerous>=0.22
+python-mpd2>=0.5.1
