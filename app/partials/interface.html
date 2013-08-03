@@ -1,0 +1,71 @@
+<div class="menu" ng-controller="MenuController">
+  <form class="form-inline">
+    <select class="form-control" style="width:200px;" ng-model="file" ng-options="file as file.name for file in files"></select>
+    <button type="button" class="btn btn-primary" ng-click="addSound(file)" ng-disabled="!file">add sound</button>
+  </form>
+</div>
+
+<svg class="display"
+     ng-mousemove="moveNode($event)"
+     ng-mouseup="stopMove($event)"
+     ng-mouseleave="stopMove($event)">
+
+  <path ng-repeat="connection in connections"
+        ng-click="removeConnection(connection)"
+        d="M {{ connection.start.x + 40}} {{ connection.start.y }} L {{ connection.end.x + 40}} {{ connection.end.y }}"
+        stroke="white"
+        stroke-width="3"></path>
+
+  <g ng-repeat="fileNode in fileNodes"
+     ng-click="toggleState(fileNode)"
+     ng-mousedown="startMove($event, fileNode); changeVolume(fileNode)"
+     ng-mouseup="setVolume($event, fileNode)"
+     transform="translate({{ fileNode.x }}, {{ fileNode.y }})">
+    <circle
+      cx="0" cy="0"
+      r="{{ fileNode.volume * 20 + 20 }}"
+      fill="yellow"></circle>
+
+    <g ng-switch="fileNode.state"
+       transform="translate(-12, -12)">
+      <image ng-switch-when="0" x="0" y="0" width="24" height="24" xlink:href="static/img/play.png"></image>
+      <image ng-switch-when="1" x="0" y="0" width="24" height="24" xlink:href="static/img/pause.png"></image>
+    </g>
+
+    <circle ng-click="makeConnection($event, fileNode)"
+            cx="{{ fileNode.volume * 30 + 30 }}" cy="0"
+            r="10"
+            fill="green"></circle>
+
+    <text x="0" y="{{ fileNode.volume * 30 + 35 }}"
+          font-family="sans-serif"
+          font-size="16px"
+          text-anchor="middle"
+          fill="white">
+      {{ fileNode.file.name }}
+    </text>
+  </g>
+
+  <g ng-repeat="channelNode in channelNodes"
+     ng-mousedown="startMove($event, channelNode)"
+     transform="translate({{ channelNode.x }}, {{ channelNode.y }})">
+    <circle ng-click="endConnection(channelNode)"
+            cx="0" cy="0"
+            r="30"
+            fill="red"></circle>
+
+    <circle ng-click="makeConnection($event, channelNode)"
+            cx="40" cy="0"
+            r="10"
+            fill="green"></circle>
+
+    <text x="0" y="50"
+          font-family="sans-serif"
+          font-size="16px"
+          text-anchor="middle"
+          fill="white">
+      {{ channelNode.channel.name }}
+    </text>
+  </g>
+
+</svg>
