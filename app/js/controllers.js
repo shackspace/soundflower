@@ -8,7 +8,7 @@
       function ($scope, channels, files) {
 
         $scope.channels = channels.query();
-
+        $scope.files = files.query();
 
         $scope.play = function (channel) {
           channel.state = 1;
