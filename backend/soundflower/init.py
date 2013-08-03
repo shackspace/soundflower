@@ -54,7 +54,8 @@ for d in [SOUND_FOLDER, MPD_FOLDER, PLAYLIST_FOLDER, PIDFOLDER]:
 def get_all_files(folder):
     ret = []
     for index, f in enumerate(os.listdir(SOUND_FOLDER)):
-        ret.append({'name': f, 'id': index})
+        if '.wav' in f:
+            ret.append({'name': f, 'id': index})
     return ret
 
 
@@ -130,9 +131,11 @@ def all_the_channels():
 
 
 def get_running_file(ident):
-    with SoundClient(ident) as mpc:
-        print(mpc)
-        return mpc.currentsong().get('file','')
+    try: 
+        with SoundClient(ident) as mpc:
+            return mpc.currentsong().get('file','')
+    except:
+        return ''
 
 
 @app.route('/')
@@ -194,10 +197,13 @@ def set_volume(ident, vol):
 @app.route('/channels/<ident>/stop')
 def stop_sound(ident):
     ident = int(ident)
-    with SoundClient(ident) as mpc:
-        mpc.stop()
-        mpc.clear()
-    return '"ok"'
+    try:
+        with SoundClient(ident) as mpc:
+            mpc.stop()
+            mpc.clear()
+        return '"ok"'
+    except Exception as e:
+        return '"failed... \'%s\'"' %str(e)
 
 
 files = get_all_files(SOUND_FOLDER)
