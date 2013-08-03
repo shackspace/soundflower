@@ -10,6 +10,7 @@
     ]).
     config(['$routeProvider', function ($routeProvider) {
       $routeProvider.when('/', {templateUrl: 'static/partials/channels.html', controller: 'ChannelsController'});
+      $routeProvider.when('/interface', {templateUrl: 'static/partials/interface.html', controller: 'InterfaceController'});
       $routeProvider.otherwise({redirectTo: '/'});
     }]);
 
