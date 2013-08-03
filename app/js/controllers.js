@@ -4,11 +4,10 @@
   angular.module('soundFlower.controllers', [])
 
     .controller('ChannelsController', [
-      '$scope', '$resource', 'channels', 'files',
+      '$scope', 'channels', 'files',
       function ($scope, channels, files) {
 
         $scope.channels = channels.query();
-
         $scope.files = files.query();
 
 

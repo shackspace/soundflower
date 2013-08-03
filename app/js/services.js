@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  angular.module('soundFlower.services', [])
+  angular.module('soundFlower.services', ['ngResource'])
 
     .factory('channels', [
       '$resource',
@@ -16,7 +16,7 @@
     .factory('files', [
       '$resource',
       function ($resource) {
-        $resource('/files/:fileId');
+        return $resource('/files/:fileId');
       }
     ]);
 
