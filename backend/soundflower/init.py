@@ -105,7 +105,7 @@ def get_file_for_id(fileid):
             return SOUND_FOLDER + v['name']
 
 
-@app.route('/channel/<ident>/play/<fileid>')
+@app.route('/channels/<ident>/play/<fileid>')
 def play_filename(ident, fileid):
     fileid = int(fileid)
     ident = int(ident)
@@ -121,7 +121,7 @@ def play_filename(ident, fileid):
     return redirect(url_for('get_all_channels'))
 
 
-@app.route('/channel/<ident>/stop')
+@app.route('/channels<ident>/stop')
 def stop_filename(ident):
     pass
 
