@@ -96,7 +96,7 @@ def get_all_channels():
 
 @app.route('/files')
 def return_files():
-    return json.dumps(get_all_files())
+    return json.dumps(get_all_files(SOUND_FOLDER))
 
 
 def get_file_for_id(fileid):
@@ -107,7 +107,7 @@ def get_file_for_id(fileid):
 
 @app.route('/channel/<ident>/play/<fileid>')
 def play_filename(ident, fileid):
-    fileid=int(fileid)
+    fileid = int(fileid)
     ident = int(ident)
     c = all_the_channels()[ident]
     fname = get_file_for_id(fileid)
