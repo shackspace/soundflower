@@ -133,9 +133,12 @@ def stop_sound(ident):
     c = all_the_channels()[ident]
     try:
         pid = get_pid_for_audiodev(c['card'], c['device'])
-        print(pid)
-        os.kill(pid, 9)
-        return '"ok"'
+        if pid:
+            print(pid)
+            os.kill(pid, 9)
+            return '"ok"'
+        else:
+            raise Exception('pid is 0')
     except:
         print('cannot stop %d' % ident)
 
