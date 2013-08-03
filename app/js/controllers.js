@@ -14,9 +14,11 @@
         $scope.play = function (channel) {
           channel.state = 1;
 
+          console.log(channel);
+
           channels.play({
-            channelId: 1,
-            fileId: channel.fileId
+            channelId: channel.id,
+            fileId: channel.file
           });
         };
 
@@ -24,7 +26,7 @@
           channel.state = 0;
 
           channels.stop({
-            channelId: 1
+            channelId: channel.id
           });
         };
 

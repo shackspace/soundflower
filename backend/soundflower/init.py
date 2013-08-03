@@ -1,19 +1,65 @@
 import json
 import os.path
+import subprocess
+import os
 from flask import Flask, abort, redirect, url_for, render_template
 
 app = Flask(__name__)
 
 db = 'shelve.db'
 SOUND_FOLDER = '../sounds/'
+PIDFOLDER = 'pids/'
+try:
+    os.mkdir(PIDFOLDER)
+except:
+    pass
 
 
 def get_all_files(folder):
-    return os.listdir(folder)
+    ret = []
+    for index, f in enumerate(os.listdir(SOUND_FOLDER)):
+        ret.append({'name': f, 'id': index})
+    return ret
 
 
-def get_alsa_state(card, device):
-    return 0
+def play_file(card, device, filename):
+
+    try:
+        with open(filename):
+            pass
+    except IOError:
+        raise Exception(filename + " does not exist!")
+
+    if not get_running(card, device):
+        proc = subprocess.Popen(['aplay', '-D', 'plughw:%d,%d' %
+                                (card, device), filename])
+        print(proc)
+        with open(PIDFOLDER+'%d-%d' % (card, device), 'w+') as f:
+            f.write(str(proc.pid)+'\n')
+            f.write(filename)
+
+    else:
+        raise Exception('already running or something')
+
+
+def get_pid_for_audiodev(card, device):
+    fname = PIDFOLDER+'%d-%d' % (card, device)
+    try:
+        pid = int(open(fname).readline())
+        os.kill(pid, 0)
+        return pid
+    except:
+        try:
+            os.remove(fname)
+            print('removing stale pidfile: %s' % fname)
+        except:
+            pass
+        return 0
+
+ 
+def get_running(card, device):
+    fname = PIDFOLDER+'%d-%d' % (card, device)
+    return get_pid_for_audiodev(card, device)
 
 
 def get_alsa_file_id(card, device):
@@ -21,19 +67,25 @@ def get_alsa_file_id(card, device):
 
 
 def all_the_channels():
-    import subprocess
     channels = []
     ident = 0
-    for line in str(subprocess.check_output(['aplay', '-l'])).split('\\n'):
+    proc = subprocess.Popen(['aplay', '-l'], stdout=subprocess.PIPE)
+    proc.wait()
+    out = proc.communicate()[0]
+    for line in out.splitlines():
+        line = line.decode()
         if 'card' in line:
             c, d, name = line.split(':')
-            card = c.split()[1]
-            device = d.split(',')[1].split()[1]
+            card = int(c.split()[1])
+            device = int(d.split(',')[1].split()[1])
             name = name.split('[')[0]
             channels.append({'id': ident,
-                             'state': get_alsa_state(card, device),
+                             'card': card,
+                             'device': device,
+                             'state': get_running(card, device),
                              'file': get_alsa_file_id(card, device),
                              'name': name.strip()})
+            ident = ident + 1
     return channels
 
 
@@ -50,21 +102,42 @@ def get_all_channels():
 
 @app.route('/files')
 def return_files():
-    ret = []
-    for index, f in enumerate(get_all_files(SOUND_FOLDER)):
-        ret.append({'name': f, 'id': index})
-    return json.dumps(ret)
+    return json.dumps(get_all_files(SOUND_FOLDER))
 
 
-@app.route('/channels/<ident>/play/<filename>')
-def play_filename(ident, filename):
+def get_file_for_id(fileid):
+    for v in get_all_files(SOUND_FOLDER):
+        if v['id'] == fileid:
+            return SOUND_FOLDER + v['name']
+
+
+@app.route('/channels/<ident>/play/<fileid>')
+def play_filename(ident, fileid):
+    fileid = int(fileid)
+    ident = int(ident)
+    c = all_the_channels()[ident]
+    fname = get_file_for_id(fileid)
+    print(fname)
+    try:
+        play_file(c['card'], c['device'], fname)
+    except Exception as e:
+        return "Something went wrong %s" % str(e), 403
+        raise e
 
     return redirect(url_for('get_all_channels'))
 
 
 @app.route('/channels/<ident>/stop')
-def stop_filename(ident):
-    pass
+def stop_sound(ident):
+    ident = int(ident)
+    c = all_the_channels()[ident]
+    try:
+        pid = get_pid_for_audiodev(c['card'], c['device'])
+        print(pid)
+        os.kill(pid, 9)
+        return '"ok"'
+    except:
+        print('cannot stop %d' % ident)
 
 
 files = get_all_files(SOUND_FOLDER)
