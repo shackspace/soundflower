@@ -74,6 +74,7 @@ def play_file(ident, filename):
             mpc.clear()
             mpc.add(filename)
             mpc.play()
+            return duration
     else:
         raise Exception('already running or something')
 
