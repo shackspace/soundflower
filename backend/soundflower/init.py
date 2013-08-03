@@ -16,7 +16,10 @@ except:
 
 
 def get_all_files(folder):
-    return os.listdir(folder)
+    ret = []
+    for index, f in enumerate(os.listdir(SOUND_FOLDER)):
+        ret.append({'name': f, 'id': index})
+    return ret
 
 
 def play_file(card, device, filename):
@@ -93,21 +96,27 @@ def get_all_channels():
 
 @app.route('/files')
 def return_files():
-    ret = []
-    for index, f in enumerate(get_all_files(SOUND_FOLDER)):
-        ret.append({'name': f, 'id': index})
-    return json.dumps(ret)
+    return json.dumps(get_all_files())
 
 
-@app.route('/channel/<ident>/play/<filename>')
-def play_filename(ident, filename):
+def get_file_for_id(fileid):
+    for v in get_all_files(SOUND_FOLDER):
+        if v['id'] == fileid:
+            return SOUND_FOLDER + v['name']
+
+
+@app.route('/channel/<ident>/play/<fileid>')
+def play_filename(ident, fileid):
+    fileid=int(fileid)
     ident = int(ident)
     c = all_the_channels()[ident]
-    print(c)
+    fname = get_file_for_id(fileid)
+    print(fname)
     try:
-        play_file(c['card'], c['device'], SOUND_FOLDER+filename)
+        play_file(c['card'], c['device'], fname)
     except Exception as e:
         return "Something went wrong %s" % str(e), 403
+        raise e
 
     return redirect(url_for('get_all_channels'))
 
