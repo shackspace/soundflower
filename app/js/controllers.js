@@ -33,8 +33,8 @@
     ])
 
     .controller('InterfaceController', [
-      '$scope', '$document', 'underscore', 'channels', 'cancelClick', '$http',
-      function ($scope, $document, _, Channels, cancelClick, $http) {
+      '$scope', '$document', 'underscore', 'channels', 'cancelClick', '$http', '$timeout',
+      function ($scope, $document, _, Channels, cancelClick, $http, $timeout) {
 
         // drag ang drop
         var offset;
@@ -165,23 +165,38 @@
             });
         }
 
-        function startPlaying(channels, fileId) {
-          console.log(fileId);
+        function startPlaying(channels, fileId, callback) {
+          var result;
+
           _(channels)
             .each(function (channel) {
-              $http.get('/channels/' + channel.id + '/play/' + fileId);
+              result = $http.get('/channels/' + channel.id + '/play/' + fileId);
             });
+
+          result.then(callback);
         }
 
         $scope.toggleState = function (fileNode) {
           fileNode.state = fileNode.state ? 0 : 1;
+
+          if (fileNode.timeout) {
+            $timeout.cancel(fileNode.timeout);
+          }
 
           var channels = getConnectedChannels(fileNode);
 
           if (fileNode.state === 0) {
             stopPlaying(channels);
           } else {
-            startPlaying(channels, fileNode.file.id);
+            startPlaying(channels, fileNode.file.id, function (result) {
+
+              var time = parseFloat(result.data, 10) * 1000;
+
+              fileNode.timeout = $timeout(function () {
+                fileNode.state = 0;
+              }, time);
+
+            });
           }
         };
 
