@@ -33,14 +33,11 @@
     ])
 
     .controller('InterfaceController', [
-      '$scope', '$document',
-      function ($scope, $document) {
-
-        $scope.files = [];
+      '$scope', '$document', 'channels',
+      function ($scope, $document, channels) {
 
         var offset;
         var movingNode;
-        var connectLine;
 
         $scope.startMove = function ($event, node) {
           movingNode = node;
@@ -61,7 +58,6 @@
           movingNode = null;
         };
 
-
         $scope.fileNodes = [];
 
         function createFileNode(file) {
@@ -74,9 +70,23 @@
 
         $scope.$on('addFile', function (evt, file) {
           var fileNode = createFileNode(file);
-
           $scope.fileNodes.push(fileNode);
-          console.log('addFile', $scope.fileNodes);
+        });
+
+        function createOutputNode(channel) {
+          return {
+            channel: channel,
+            x: Math.floor(Math.random() * $document[0].width),
+            y: Math.floor(Math.random() * $document[0].height)
+          };
+        }
+
+        channels.query(function (channels) {
+          $scope.channelNodes = channels.map(createOutputNode);
+
+
+          console.log($scope.channelNodes);
+
         });
       }
     ])
