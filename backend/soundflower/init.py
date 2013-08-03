@@ -60,7 +60,11 @@ def get_alsa_file_id(card, device):
 def all_the_channels():
     channels = []
     ident = 0
-    for line in str(subprocess.check_output(['aplay', '-l'])).split('\\n'):
+    proc = subprocess.Popen(['aplay', '-l'], stdout=subprocess.PIPE)
+    proc.wait()
+    out = proc.communicate()[0]
+    for line in out.splitlines():
+        line = line.decode()
         if 'card' in line:
             c, d, name = line.split(':')
             card = int(c.split()[1])
