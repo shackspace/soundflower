@@ -52,7 +52,7 @@ def loop_file(card, device, filename):
     # i come in hell for this, sorry...
     duration = get_wav_len(filename)
     if not get_running(card, device):
-        proc = subprocess.Popen(['mplayer','-loop','0', '-ao', 'alsa:device=hw=%d.%d' %
+        proc = subprocess.Popen(['mplayer','-really-quiet','-loop','0', '-ao', 'alsa:device=hw=%d.%d' %
                                 (card, device), filename])
         print(proc)
         with open(PIDFOLDER+'%d-%d' % (card, device), 'w+') as f:
