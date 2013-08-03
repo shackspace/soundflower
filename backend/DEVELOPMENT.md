@@ -1,7 +1,7 @@
 # How to develop
 
-    # install python3 
+    aptitude install python-virtualenv alsa-utils mplayer
 
-    virtualenv-3.3 .
+    virtualenv .
     . bin/activate
     pip install -r requirements.txt
