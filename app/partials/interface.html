@@ -10,21 +10,20 @@
      ng-mouseup="stopMove($event)"
      ng-mouseleave="stopMove($event)">
 
-
   <path ng-repeat="connection in connections"
         ng-click="removeConnection(connection)"
         d="M {{ connection.start.x + 40}} {{ connection.start.y }} L {{ connection.end.x + 40}} {{ connection.end.y }}"
         stroke="white"
         stroke-width="3"></path>
 
-
   <g ng-repeat="fileNode in fileNodes"
      ng-click="toggleState(fileNode)"
-     ng-mousedown="startMove($event, fileNode)"
+     ng-mousedown="startMove($event, fileNode); changeVolume(fileNode)"
+     ng-mouseup="setVolume($event, fileNode)"
      transform="translate({{ fileNode.x }}, {{ fileNode.y }})">
     <circle
       cx="0" cy="0"
-      r="30"
+      r="{{ fileNode.volume * 20 + 20 }}"
       fill="yellow"></circle>
 
     <g ng-switch="fileNode.state"
@@ -34,11 +33,11 @@
     </g>
 
     <circle ng-click="makeConnection($event, fileNode)"
-            cx="40" cy="0"
+            cx="{{ fileNode.volume * 30 + 30 }}" cy="0"
             r="10"
             fill="green"></circle>
 
-    <text x="-25" y="45"
+    <text x="0" y="{{ fileNode.volume * 30 + 35 }}"
           font-family="sans-serif"
           font-size="16px"
           text-anchor="middle"
@@ -60,7 +59,7 @@
             r="10"
             fill="green"></circle>
 
-    <text x="-25" y="45"
+    <text x="0" y="50"
           font-family="sans-serif"
           font-size="16px"
           text-anchor="middle"
