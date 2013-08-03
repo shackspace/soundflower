@@ -23,10 +23,14 @@ def get_all_files(folder):
 
 
 def play_file(card, device, filename):
-
+    import wave
+    import contextlib
+    duration = 0
     try:
-        with open(filename):
-            pass
+        with contextlib.closing(wave.open(filename)) as f:
+            frames = f.getnframes()
+            rate = f.getframerate()
+            duration = frames/float(rate)
     except IOError:
         raise Exception(filename + " does not exist!")
 
@@ -37,6 +41,7 @@ def play_file(card, device, filename):
         with open(PIDFOLDER+'%d-%d' % (card, device), 'w+') as f:
             f.write(str(proc.pid)+'\n')
             f.write(filename)
+        return duration
 
     else:
         raise Exception('already running or something')
@@ -64,6 +69,9 @@ def get_running(card, device):
 
 def get_alsa_file_id(card, device):
     return 0
+
+
+
 
 
 def all_the_channels():
@@ -119,12 +127,19 @@ def play_filename(ident, fileid):
     fname = get_file_for_id(fileid)
     print(fname)
     try:
-        play_file(c['card'], c['device'], fname)
+        return str(play_file(c['card'], c['device'], fname))
     except Exception as e:
         return "Something went wrong %s" % str(e), 403
-        raise e
 
-    return redirect(url_for('get_all_channels'))
+@app.route('/channels/<ident>/volume/<vol>')
+def set_volume(ident, vol):
+    ident = int(ident)
+    vol = vol
+    c = all_the_channels()[ident]
+    # brute force mixer controls
+    for mixer in ['PCM', 'Master', 'Speaker']:
+        subprocess.call(['amixer', '-c', str(c['card']), 'set', mixer, vol+'%'])
+    return 'ok'
 
 
 @app.route('/channels/<ident>/stop')
@@ -133,9 +148,12 @@ def stop_sound(ident):
     c = all_the_channels()[ident]
     try:
         pid = get_pid_for_audiodev(c['card'], c['device'])
-        print(pid)
-        os.kill(pid, 9)
-        return '"ok"'
+        if pid:
+            print(pid)
+            os.kill(pid, 9)
+            return '"ok"'
+        else:
+            raise Exception('pid is 0')
     except:
         print('cannot stop %d' % ident)
 
