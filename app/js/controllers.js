@@ -36,10 +36,13 @@
       '$scope', '$document', 'channels',
       function ($scope, $document, channels) {
 
+        // drag ang drop
         var offset;
         var movingNode;
+        var currentConnection;
 
         $scope.startMove = function ($event, node) {
+          $event.stopPropagation();
           movingNode = node;
           offset = {
             x: $event.x - movingNode.x,
@@ -47,17 +50,61 @@
           };
         };
 
-        $scope.updateNode = function ($event, node) {
+        $scope.moveNode = function ($event, node) {
           if (movingNode) {
             movingNode.x = $event.x - offset.x;
             movingNode.y = $event.y - offset.y;
           }
         };
 
-        $scope.stopMove = function () {
+        $scope.stopMove = function ($event) {
+          $event.stopPropagation();
           movingNode = null;
         };
 
+        // node linking
+        $scope.connections = [];
+
+        $scope.startConnection = function (node) {
+          currentConnection = {
+            start: node,
+            end: {
+              x: node.x,
+              y: node.y
+            }
+          };
+
+          $scope.connections.push(currentConnection);
+        };
+
+        $scope.endConnection = function (node) {
+          if (currentConnection) {
+            currentConnection.end = node;
+            movingNode = null;
+            currentConnection = null;
+          }
+        };
+
+        $scope.cancelConnection = function ($event) {
+          $event.stopPropagation();
+          $scope.removeConnection(currentConnection);
+        };
+
+        $scope.removeConnection = function (connection) {
+          var connections = $scope.connections;
+          var deleteIndex = connection.indexOf(connection);
+
+          connections.splice(deleteIndex, 1);
+        };
+
+        $scope.moveConnection = function ($event) {
+          if (currentConnection) {
+            currentConnection.end.x = $event.x;
+            currentConnection.end.y = $event.y;
+          }
+        };
+
+        // file nodes
         $scope.fileNodes = [];
 
         function createFileNode(file) {
@@ -73,6 +120,7 @@
           $scope.fileNodes.push(fileNode);
         });
 
+        // output nodes
         function createOutputNode(channel) {
           return {
             channel: channel,
@@ -83,10 +131,6 @@
 
         channels.query(function (channels) {
           $scope.channelNodes = channels.map(createOutputNode);
-
-
-          console.log($scope.channelNodes);
-
         });
       }
     ])

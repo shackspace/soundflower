@@ -5,49 +5,56 @@
   </form>
 </div>
 
-<svg class="display" ng-mousemove="updateNode($event)" ng-mouseup="stopMove()" ng-mouseleave="stopMove()">
+<svg class="display"
+     ng-mousemove="moveNode($event)"
+     ng-mouseup="stopMove($event)"
+     ng-mouseleave="stopMove($event)">
+
+
+  <path ng-repeat="connection in connections"
+        d="M {{ connection.start.x }} {{ connection.start.y }} L {{ connection.end.x }} {{ connection.end.y }}"
+        stroke="white"
+        stroke-width="2"></path>
 
 
   <g ng-repeat="fileNode in fileNodes"
      ng-mousedown="startMove($event, fileNode)"
      transform="translate({{ fileNode.x }}, {{ fileNode.y }})">
     <circle
-      cx="-25" cy="-25"
-      r="50"
-      fill="yellow"/>
+      cx="-15" cy="-15"
+      r="30"
+      fill="yellow"></circle>
 
-    <text
-      x="-25" y="45"
-      font-family="sans-serif"
-      font-size="16px"
-      text-anchor="middle"
-      fill="white">
+    <circle ng-click="startConnection(fileNode)"
+            cx="30" cy="-5"
+            r="10"
+            fill="green"></circle>
+
+    <text x="-25" y="45"
+          font-family="sans-serif"
+          font-size="16px"
+          text-anchor="middle"
+          fill="white">
       {{ fileNode.file.name }}
     </text>
   </g>
 
   <g ng-repeat="channelNode in channelNodes"
      ng-mousedown="startMove($event, channelNode)"
+     ng-click="makeConnection(channelNode)"
      transform="translate({{ channelNode.x }}, {{ channelNode.y }})">
-    <circle
-      cx="-25" cy="-25"
-      r="50"
-      fill="red"/>
+    <circle ng-click="endConnection(channelNode)"
+            cx="-15" cy="-15"
+            r="30"
+            fill="red"></circle>
 
-    <text
-      x="-25" y="45"
-      font-family="sans-serif"
-      font-size="16px"
-      text-anchor="middle"
-      fill="white">
+    <text x="-25" y="45"
+          font-family="sans-serif"
+          font-size="16px"
+          text-anchor="middle"
+          fill="white">
       {{ channelNode.channel.name }}
     </text>
   </g>
-
-
-  <path ng-repeat="line in lines"
-    d="M {{ line.start.x }} {{ line.start.y }} L {{ line.end.x }} {{ line.end.y }}"
-        stroke="blue" stroke-width="3" />
-
 
 </svg>
