@@ -1,0 +1,27 @@
+*, *:before, *:after {
+    -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+}
+
+html,body, .content {
+    height: 100%;
+}
+
+
+.display {
+    width: 100%;
+    height: 100%;
+    background-color: #434343;
+}
+
+
+.menu {
+    position: absolute;
+    top: 0;
+    padding: 10px;
+    width: 100%;
+}
+
+
+.file-selection {
+    width: 200px;
+}
