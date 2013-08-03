@@ -33,11 +33,12 @@
     ])
 
     .controller('InterfaceController', [
-      '$scope', '$document', 'channels',
-      function ($scope, $document, channels) {
+      '$scope', '$document', 'channels', 'cancelClick',
+      function ($scope, $document, channels, cancelClick) {
 
         // drag ang drop
         var offset;
+        var moved = false;
         var movingNode;
         var currentConnection;
 
@@ -52,20 +53,24 @@
 
         $scope.moveNode = function ($event, node) {
           if (movingNode) {
+            moved = true;
             movingNode.x = $event.x - offset.x;
             movingNode.y = $event.y - offset.y;
           }
         };
 
         $scope.stopMove = function ($event) {
-          $event.stopPropagation();
+          if (moved) {
+            cancelClick($event);
+          }
+          moved = false;
           movingNode = null;
         };
 
         // node linking
         $scope.connections = [];
 
-        $scope.startConnection = function (node) {
+        function startConnection(node) {
           currentConnection = {
             start: node,
             end: {
@@ -75,13 +80,22 @@
           };
 
           $scope.connections.push(currentConnection);
-        };
+        }
 
-        $scope.endConnection = function (node) {
+        function endConnection(node) {
           if (currentConnection) {
             currentConnection.end = node;
             movingNode = null;
             currentConnection = null;
+          }
+        }
+
+        $scope.makeConnection = function ($event, node) {
+          $event.stopPropagation();
+          if (!currentConnection) {
+            startConnection(node);
+          } else {
+            endConnection(node);
           }
         };
 

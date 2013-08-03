@@ -12,7 +12,7 @@
 
 
   <path ng-repeat="connection in connections"
-        d="M {{ connection.start.x }} {{ connection.start.y }} L {{ connection.end.x }} {{ connection.end.y }}"
+        d="M {{ connection.start.x + 40}} {{ connection.start.y }} L {{ connection.end.x + 40}} {{ connection.end.y }}"
         stroke="white"
         stroke-width="2"></path>
 
@@ -32,8 +32,8 @@
       <image ng-switch-when="1" x="0" y="0" width="24" height="24" xlink:href="static/img/pause.png"></image>
     </g>
 
-    <circle ng-click="startConnection(fileNode)"
-            cx="30" cy="0"
+    <circle ng-click="makeConnection($event, fileNode)"
+            cx="40" cy="0"
             r="10"
             fill="green"></circle>
 
@@ -48,12 +48,16 @@
 
   <g ng-repeat="channelNode in channelNodes"
      ng-mousedown="startMove($event, channelNode)"
-     ng-click="makeConnection(channelNode)"
      transform="translate({{ channelNode.x }}, {{ channelNode.y }})">
     <circle ng-click="endConnection(channelNode)"
             cx="0" cy="0"
             r="30"
             fill="red"></circle>
+
+    <circle ng-click="makeConnection($event, channelNode)"
+            cx="40" cy="0"
+            r="10"
+            fill="green"></circle>
 
     <text x="-25" y="45"
           font-family="sans-serif"
