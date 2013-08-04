@@ -13,7 +13,7 @@ here = os.path.abspath(os.getcwd())
 
 
 app = Flask(__name__)
-SOUND_FOLDER = os.path.abspath('../sounds/')
+SOUND_FOLDER = os.path.abspath('../sounds/')+"/"
 PLAYLIST_FOLDER = SOUND_FOLDER + 'playlist'
 MPD_FOLDER = os.path.abspath('../mpd/')
 mpd_start_port = 6700
@@ -58,7 +58,7 @@ def get_wav_len(filename):
     import wave
     import contextlib
     try:
-        with contextlib.closing(wave.open(filename)) as f:
+        with contextlib.closing(wave.open(SOUND_FOLDER + filename)) as f:
             frames = f.getnframes()
             rate = f.getframerate()
             return frames/float(rate)
@@ -187,10 +187,10 @@ def loop_filename(ident, fileid):
 def set_volume(ident, vol):
     ident = int(ident)
     with SoundClient(ident) as mpc:
-   try:
-       mpc.setvol(vol)
-                return '"ok"'
-   except:
+        try:
+            mpc.setvol(vol)
+            return '"ok"'
+        except:
             return '"cannot set volume for %d"' % ident
 
 
